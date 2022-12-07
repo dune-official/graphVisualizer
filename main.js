@@ -145,11 +145,29 @@ function depthSearcher(node) {
     }
 }
 
-nodes = buildRandomGraph(20);
-graphData = nodesToGraph(nodes);
-Graph.graphData(graphData);
+nodes = buildRandomGraph(1000);
+gD = nodesToGraph(nodes);
 const queue = new Queue();
-queue.enqueue(nodes[0]);
 
-breadthSearcher().then(r => {});
+const startBS = (node) => {
+    console.log(node);
+    queue.enqueue(nodes[node.id]);
 
+    breadthSearcher().then(r => {});
+}
+
+const Graph = ForceGraph3D()(document.getElementById("3d-graph"))
+    .enableNodeDrag(false)
+    .onNodeClick(startBS);
+
+Graph.graphData(gD);
+
+/*
+let angle = 0;
+setInterval(() => {
+    Graph.cameraPosition({
+        x: distance * Math.sin(angle),
+        z: distance * Math.cos(angle)
+    });
+    angle += Math.PI / 300;
+}, 100);*/
