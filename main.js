@@ -1,5 +1,3 @@
-const Graph = ForceGraph3D()(document.getElementById("3d-graph"));
-
 class Queue {
     constructor() {
         this.content = [];
@@ -24,12 +22,13 @@ class Node {
         this.adjacencies = []; // childs
         this.marked = false;
         this.color = null;
+        this.level = 0;
     }
 
     setColor(newColor) {
         this.color = newColor;
-        graphData.nodes[this.id].color = this.color;
         let data = Graph.graphData();
+        data.nodes[this.id].color = this.color;
         Graph.graphData(data);
     }
 
@@ -46,17 +45,7 @@ class Node {
     }
 }
 
-// setInterval(() => {
-//     const { nodes, links } = Graph.graphData();
-//     const id = nodes.length;
-//     Graph.graphData({
-//         nodes: [...nodes, { id }],
-//         links: [...links, { source: id, target: Math.round(Math.random() * (id-1)) }]
-//     });
-// }, 1000);
-
 const buildRandomGraph = (nodeCount) => {
-    // nodeCount # an Knoten
     let nodes = [];
     let randomIndex = 0;
     for (let i = 0; i < nodeCount; i++) {
@@ -64,27 +53,12 @@ const buildRandomGraph = (nodeCount) => {
         nodes.push(node);
     }
     for (let i = 0; i < nodeCount; i++) {
-        randomIndex = Math.round(Math.random());
+        randomIndex = Math.round(Math.random() * (nodeCount / 4));
         nodes[i].addAdjacency(nodes[randomIndex]);
         nodes[randomIndex].addAdjacency(nodes[i]);
     }
     return nodes;
 }
-
-
-
-// const NodeNumber = 501;
-// const gData = {
-//     nodes: [...Array(NodeNumber).keys()].map(i => ({id: i})),
-//     links: [...Array(NodeNumber).keys()]
-//         .filter(id => id)
-//         .map(id => ({
-//             source: id,
-//             target: Math.round(Math.random() * (id - 1) / 8)
-//         }))
-// };
-//
-// // { controlType: 'fly' }
 
 function nodesToGraph(nodes) {
     let graphData = {
@@ -94,7 +68,7 @@ function nodesToGraph(nodes) {
 
     let adjacencies = {};
     for (let i = 0; i < nodes.length; i++) {
-        graphData.nodes.push({id: nodes[i].id, color: nodes[i].color});
+        graphData.nodes.push({id: nodes[i].id, color: "#ffffff"});
 
         for (let j = 0; j < nodes[i].adjacencies.length; j++) {
             if (!(`${nodes[i].adjacencies[j].id}_${nodes[i].id}` in adjacencies)) {
@@ -113,24 +87,33 @@ async function breadthSearcher() {
     }
 }
 
+function waitForIt() {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve();
+        }, 2000);
+    })
+}
+
 function breadthSearchD() {
     return new Promise(resolve => {
         setTimeout(() => {
             let node = queue.dequeue();
             node.mark();
+            node.level++;
 
-            /* Color is open for discussion */
-            node.setColor("#ff0000");
+            node.setColor(`#${(node.level * 4).toString(16)}0000`);
 
             for (let i = 0; i < node.adjacencies.length; i++) {
                 if (!node.adjacencies[i].marked) {
                     node.adjacencies[i].mark();
+                    node.adjacencies[i].level = node.level;
                     queue.enqueue(node.adjacencies[i]);
                 }
             }
             resolve();
 
-        }, 500);
+        }, 10);
     });
 }
 
