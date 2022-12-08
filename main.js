@@ -16,20 +16,30 @@ class Queue {
     }
 }
 
+class Stack {
+    constructor() {
+        this.content = [];
+    }
+
+    push(item) {
+        this.content.push(item);
+    }
+
+    pop() {
+        return this.content.pop();
+    }
+
+    isEmpty() {
+        return this.content.length === 0;
+    }
+}
+
 class Node {
     constructor(nodeId) {
         this.id = nodeId;
         this.adjacencies = []; // childs
         this.marked = false;
-        this.color = null;
         this.level = 0;
-    }
-
-    setColor(newColor) {
-        this.color = newColor;
-        let data = Graph.graphData();
-        data.nodes[this.id].color = this.color;
-        Graph.graphData(data);
     }
 
     addAdjacency(adjNode) {
@@ -38,6 +48,8 @@ class Node {
 
     mark() {
         this.marked = true;
+        visited.add(this.id);
+        Graph.nodeColor(Graph.nodeColor());
     }
 
     unmark() {
@@ -48,19 +60,25 @@ class Node {
 const buildRandomGraph = (nodeCount) => {
     let nodes = [];
     let randomIndex = 0;
+
+    let branchingIndex = Math.round(Math.random())+1;
     for (let i = 0; i < nodeCount; i++) {
         const node = new Node(i);
         nodes.push(node);
     }
     for (let i = 0; i < nodeCount; i++) {
-        randomIndex = Math.round(Math.random() * (nodeCount / 4));
+        randomIndex = Math.round(Math.random() * (i - 1) / branchingIndex);
         nodes[i].addAdjacency(nodes[randomIndex]);
         nodes[randomIndex].addAdjacency(nodes[i]);
     }
     return nodes;
 }
 
-function nodesToGraph(nodes) {
+const getColor = (level) => {
+    return (255-(level * 2)) > 0 ? (255-(level * 30)).toString(16) : "00";
+}
+
+const nodesToGraph = (nodes) => {
     let graphData = {
         nodes: [],
         links: [],
@@ -81,18 +99,21 @@ function nodesToGraph(nodes) {
     return graphData;
 }
 
+const clearAll = () => {
+    for (let i = 0; i < nodeData.length; i++) {
+        nodeData[i].unmark();
+        visited.clear();
+        Graph.nodeColor(Graph.nodeColor());
+    }
+
+    queue.content = [];
+    stack.content = [];
+}
+
 async function breadthSearcher() {
     while (!queue.isEmpty()) {
         await breadthSearchD();
     }
-}
-
-function waitForIt() {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve();
-        }, 2000);
-    })
 }
 
 function breadthSearchD() {
@@ -101,47 +122,104 @@ function breadthSearchD() {
             let node = queue.dequeue();
             node.mark();
             node.level++;
-
-            node.setColor(`#${(node.level * 4).toString(16)}0000`);
-
             for (let i = 0; i < node.adjacencies.length; i++) {
                 if (!node.adjacencies[i].marked) {
+                    // await breadthSearchDChildren(node.adjacencies[i], node.level);
                     node.adjacencies[i].mark();
                     node.adjacencies[i].level = node.level;
                     queue.enqueue(node.adjacencies[i]);
                 }
             }
             resolve();
-
-        }, 10);
+        }, timeoutTime);
     });
 }
 
-function depthSearcher(node) {
-    node.mark();
+async function depthSearcher() {
+    while (!stack.isEmpty()) {
+        await depthSearchD();
+    }
 
-    for (let i = 0; i < node.adjacencies.length; i++) {
-        if (!node.marked) {
-            node.adjacencies[i].mark();
-            depthSearcher(node.adjacencies[i]);
-        }
+}
+
+function depthSearchD() {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            let node = stack.pop();
+            node.mark();
+            node.level++;
+            for (let i = 0; i < node.adjacencies.length; i++) {
+                if (!node.adjacencies[i].marked) {
+                    // await depthSearchDChildren(node.adjacencies[i], node.level);
+                    node.adjacencies[i].mark();
+                    node.adjacencies[i].level = node.level;
+                    stack.push(node.adjacencies[i]);
+                }
+            }
+            resolve();
+        }, timeoutTime);
+    })
+}
+
+nodeData = buildRandomGraph(1000);
+gD = nodesToGraph(nodeData);
+
+let mode = "DSF";
+
+const clear = document.getElementById("clear");
+const dsfButton = document.getElementById("dsf")
+const bsfButton = document.getElementById("bsf");
+const modeText = document.getElementById("mode");
+
+const timeoutTime = 100;
+const visited = new Set();
+const queue = new Queue();
+const stack = new Stack();
+
+dsfButton.addEventListener("click", () => {
+    mode = "DSF";
+    modeText.innerText = "DSF-Mode";
+});
+
+bsfButton.addEventListener("click", () => {
+    mode = "BSF";
+    modeText.innerText = "BSF-Mode";
+});
+
+clear.addEventListener("click", () => {
+    clearAll();
+});
+
+const doSearch = (node) => {
+    if (mode === "DSF") {
+        console.log("depth");
+        startDS(node);
+    } else {
+        console.log("breadth");
+        startBS(node);
     }
 }
 
-nodes = buildRandomGraph(1000);
-gD = nodesToGraph(nodes);
-const queue = new Queue();
-
 const startBS = (node) => {
-    console.log(node);
-    queue.enqueue(nodes[node.id]);
-
+    queue.enqueue(nodeData[node.id]);
     breadthSearcher().then(r => {});
 }
 
-const Graph = ForceGraph3D()(document.getElementById("3d-graph"))
+const startDS = (node) => {
+    stack.push(nodeData[node.id]);
+    depthSearcher().then(r => {});
+}
+
+const Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById("3d-graph"))
     .enableNodeDrag(false)
-    .onNodeClick(startBS);
+    .nodeColor(node => {
+        if (visited.has(node.id)) {
+            return "#ff0000";
+        } else {
+            return "#ffffff";
+        }
+    })
+    .onNodeClick(doSearch);
 
 Graph.graphData(gD);
 

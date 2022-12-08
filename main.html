@@ -7,6 +7,12 @@
     <script src="main.js" defer></script>
 </head>
 <body>
+    <div id="wrapper">
+        <button id="clear" type="button">Clear</button>
+        <button id="dsf" type="button">DSF</button>
+        <button id="bsf" type="button">BSF</button>
+        <div id="mode">DSF-Mode</div>
+    </div>
     <div id="3d-graph"></div>
 </body>
 <style>
@@ -15,5 +21,14 @@
         height: 100%;
         background: black
     }
+
+    #mode {
+        color: white;
+    }
+
+    #wrapper {
+        display: flex;
+    }
+
 </style>
 </html>
